@@ -96,6 +96,8 @@ print("\nFinal Vehicle Counts Sent to Arduino:")
 for i, count in enumerate(total_lane_counts):
     print(f"Lane {i + 1}: {count} vehicles")
 
+print(f"Data sent to Arduino: {density_string.strip()}")
+
 # Close the serial port
 ser.close()
 

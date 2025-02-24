@@ -22,12 +22,8 @@ void greenLight(int lane);
 void calculateGreenTimes();
 void manageTrafficLights();
 const int* getLane(int index);
-void readDensitiesFromSerial();
 
 void setup() {
-  // Initialize serial communication
-  Serial.begin(9600);
-
   // Initialize all traffic light pins as OUTPUT and set them to Red
   for (int i = 0; i < 4; i++) {
     for (int j = 0; j < 3; j++) {
@@ -35,11 +31,52 @@ void setup() {
       digitalWrite(getLane(i)[2], HIGH); // Set all lanes to Red initially
     }
   }
+
+  // Initialize serial communication
+  Serial.begin(9600);
+
+  // Debug statement
+  Serial.println("Arduino initialized. Waiting for density data...");
 }
 
 void loop() {
-  readDensitiesFromSerial();
-  manageTrafficLights();
+  if (Serial.available() > 0) {
+    // Read the incoming data
+    String densityString = Serial.readStringUntil('\n');
+    Serial.println("Received: " + densityString);  // Debug statement
+
+    // Parse the density data
+    int index = 0;
+    int start = 0;
+    int end;
+
+    // Clear previous density values
+    for (int i = 0; i < 4; i++) {
+      densities[i] = 0;
+    }
+
+    while (index < 4) {
+      end = densityString.indexOf(' ', start);
+      if (end == -1) { 
+        densities[index] = densityString.substring(start).toInt();
+        break;
+      }
+      densities[index] = densityString.substring(start, end).toInt();
+      start = end + 1;
+      index++;
+    }
+
+    // Debug statement to print parsed densities
+    Serial.print("Parsed Densities: ");
+    for (int i = 0; i < 4; i++) {
+      Serial.print(densities[i]);
+      Serial.print(" ");
+    }
+    Serial.println();
+
+    // Manage traffic lights based on the new densities
+    manageTrafficLights();
+  }
 }
 
 const int* getLane(int index) {
@@ -129,23 +166,5 @@ void manageTrafficLights() {
     delay(greenTimes[currentLane]);
 
     yellowLight(currentLane, nextLane);
-  }
-}
-
-void readDensitiesFromSerial() {
-  if (Serial.available() > 0) {
-    String input = Serial.readStringUntil('\n');
-    int index = 0;
-    int startPos = 0;
-
-    for (int i = 0; i < 4; i++) {
-      int commaPos = input.indexOf(',', startPos);
-      if (commaPos == -1 && i < 3) {
-        Serial.println("Invalid input format. Expected 4 comma-separated values.");
-        return;
-      }
-      densities[i] = input.substring(startPos, commaPos).toInt();
-      startPos = commaPos + 1;
-    }
   }
 }
